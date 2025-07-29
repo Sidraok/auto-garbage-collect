@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="An interactive, detailed guide to designing and building an autonomous garbage collection rover, covering hardware, software, AI, and advanced features.">
+    <title>Autonomous Garbage Rover: An Interactive Design Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate Gray & Tech Blue -->
+    <!-- Application Structure Plan: The SPA is designed around a thematic, non-linear structure to enhance usability for a technical audience. A sticky top navigation allows users to jump to key pillars of rover design: 'Overview', 'Core Components', 'Development Process', and 'Advanced Features'. The 'Core Components' section is the most interactive, using a tabbed interface to separate Hardware, Software, and Mechanics, which is a more intuitive grouping for engineers than the report's linear chapter flow. This structure encourages exploration, allowing users to compare options (e.g., interactive hardware table, AI model chart) and understand processes (e.g., animated SLAM visualization) on demand, rather than through passive reading. -->
+    <!-- Visualization & Content Choices: 
+        - PPA Loop Diagram (HTML/CSS): Goal: Organize. A simple, interactive diagram to introduce the core operational concept without overwhelming the user. Interaction: Hover effects provide details. Justification: More engaging than a static image.
+        - Hardware Comparison Table (HTML/JS): Goal: Compare. An interactive table for hardware components. Interaction: JS-powered filtering/sorting. Justification: Allows users to analyze options based on their own criteria (cost, performance).
+        - AI Model Performance Chart (Chart.js): Goal: Compare. A bar chart comparing AI models. Interaction: Hover tooltips. Justification: Provides a quick, quantitative visual comparison of performance metrics.
+        - SLAM Process Visualization (HTML/Canvas/JS): Goal: Show Change. An animated visualization of map building. Interaction: Automatic animation. Justification: Demonstrates a complex, dynamic process more effectively than text.
+        - Gripper Designs (HTML/CSS Grid): Goal: Compare. A visual grid of collection mechanisms. Interaction: Click to expand details. Justification: A clean, scannable way to compare mechanical options.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #334155; /* slate-700 */
+        }
+        .nav-link {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #2563eb; /* blue-600 */
+            border-bottom-color: #2563eb;
+        }
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        .tab-button.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .tab-button:not(.active):hover {
+            background-color: #e2e8f0; /* slate-200 */
+        }
+        .content-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .content-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .hotspot {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(37, 99, 235, 0.8);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .hotspot:hover {
+            transform: scale(1.5);
+            background-color: rgba(29, 78, 216, 1);
+        }
+        .hotspot-tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 150%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .hotspot:hover .hotspot-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-slate-800">Autonomous Rover Design Guide</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#overview" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">Overview</a>
+                        <a href="#components" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">Core Components</a>
+                        <a href="#process" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">Development Process</a>
+                        <a href="#advanced" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600">Advanced Features</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <!-- Overview Section -->
+        <section id="overview" class="mb-16 scroll-mt-16">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">Foundational Architecture</h2>
+            <p class="text-lg text-slate-600 mb-8 max-w-3xl">
+                This guide deconstructs the complex challenge of building an autonomous garbage collection rover. The core of any such robot is the Perception-Planning-Action (PPA) loop, a continuous cycle where the rover senses its environment, decides on a course of action, and then executes it. This section introduces this fundamental concept and the logical steps the rover follows to complete its mission.
+            </p>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="content-card p-6">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-4">The Perception-Planning-Action Loop</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">P</div>
+                            <div class="ml-4">
+                                <h4 class="font-semibold">Perception</h4>
+                                <p class="text-sm text-slate-500">Fuses data from multiple sensors: LiDAR for 360° mapping, cameras for object identification, and an IMU + wheel encoders for proprioceptive feedback on its own movement.</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-center h-8">
+                            <span class="text-2xl text-slate-400">&darr;</span>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">P</div>
+                            <div class="ml-4">
+                                <h4 class="font-semibold">Planning (Hierarchical)</h4>
+                                <p class="text-sm text-slate-500"><span class="font-bold">Global Planner:</span> Computes a long-range path to the target on a static map. <span class="font-bold">Local Planner:</span> Makes real-time adjustments to avoid dynamic obstacles not on the map.</p>
+                            </div>
+                        </div>
+                         <div class="flex justify-center h-8">
+                            <span class="text-2xl text-slate-400">&darr;</span>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">A</div>
+                            <div class="ml-4">
+                                <h4 class="font-semibold">Action</h4>
+                                <p class="text-sm text-slate-500">Executes planned velocities via motor controllers and triggers the collection mechanism. The resulting motion provides new sensor data, restarting the loop.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-card p-6">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-4">The Collection Cycle (State Machine)</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-slate-600">
+                        <li><span class="font-semibold">Survey/Search:</span> Explore a designated area. <span class="text-xs italic">(State: SEARCHING)</span></li>
+                        <li><span class="font-semibold">Detect Target:</span> Identify an object via the perception model. <span class="text-xs italic">(Event: GARBAGE_DETECTED)</span></li>
+                        <li><span class="font-semibold">Navigate to Target:</span> Send goal to the Nav2 stack. <span class="text-xs italic">(State: NAVIGATING)</span></li>
+                        <li><span class="font-semibold">Approach and Align:</span> Perform fine maneuvers for optimal collection. <span class="text-xs italic">(Sub-state of NAVIGATING)</span></li>
+                        <li><span class="font-semibold">Grasp/Collect:</span> Actuate the manipulator. <span class="text-xs italic">(State: GRASPING)</span></li>
+                        <li><span class="font-semibold">Navigate to Disposal:</span> Travel to a home base. <span class="text-xs italic">(State: RETURNING)</span></li>
+                        <li><span class="font-semibold">Dispose and Return:</span> Deposit item and resume search. <span class="text-xs italic">(Event: DISPOSAL_COMPLETE -> SEARCHING)</span></li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Components Section -->
+        <section id="components" class="mb-16 scroll-mt-16">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">Core Components: The Building Blocks</h2>
+            <p class="text-lg text-slate-600 mb-8 max-w-3xl">
+                A rover is a complex system of integrated parts. This section allows you to explore the three primary domains: the physical hardware that forms its body and senses the world, the software and algorithms that form its mind, and the mechanical systems it uses to interact with objects. Use the tabs below to switch between these domains.
+            </p>
+            
+            <!-- Tabs -->
+            <div class="mb-6">
+                <div class="flex space-x-2 border-b border-slate-200">
+                    <button class="tab-button active px-4 py-2 text-sm font-semibold rounded-t-md" onclick="openTab(event, 'Hardware')">Hardware</button>
+                    <button class="tab-button px-4 py-2 text-sm font-semibold rounded-t-md" onclick="openTab(event, 'Software')">Software & AI</button>
+                    <button class="tab-button px-4 py-2 text-sm font-semibold rounded-t-md" onclick="openTab(event, 'Mechanism')">Collection Mechanism</button>
+                </div>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="Hardware" class="tab-content">
+                <div class="grid lg:grid-cols-5 gap-8">
+                    <div class="lg:col-span-2 content-card p-6 flex flex-col items-center justify-center">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4 text-center">Interactive Hardware Explorer</h3>
+                        <p class="text-sm text-slate-500 mb-6 text-center">Click the hotspots on the rover diagram to learn about key hardware components.</p>
+                        <div class="relative w-64 h-48 bg-slate-200 rounded-lg">
+                            <!-- Rover Body -->
+                            <div class="absolute inset-x-2 top-8 h-32 bg-slate-300 rounded"></div>
+                            <!-- Wheels -->
+                            <div class="absolute w-10 h-10 bg-slate-700 rounded-full -left-5 top-4"></div>
+                            <div class="absolute w-10 h-10 bg-slate-700 rounded-full -right-5 top-4"></div>
+                            <div class="absolute w-10 h-10 bg-slate-700 rounded-full -left-5 bottom-4"></div>
+                            <div class="absolute w-10 h-10 bg-slate-700 rounded-full -right-5 bottom-4"></div>
+                            
+                            <!-- Hotspots -->
+                            <div class="hotspot" style="top: 0px; left: 45%;" onclick="showHardwareInfo('cpu')">CPU
+                                <span class="hotspot-tooltip">Compute Unit (CPU/GPU)</span>
+                            </div>
+                            <div class="hotspot" style="top: 20px; left: 10px;" onclick="showHardwareInfo('lidar')">L
+                                <span class="hotspot-tooltip">LiDAR Sensor</span>
+                            </div>
+                             <div class="hotspot" style="top: 20px; right: 10px;" onclick="showHardwareInfo('camera')">V
+                                <span class="hotspot-tooltip">Vision System (Camera)</span>
+                            </div>
+                            <div class="hotspot" style="bottom: 10px; left: 10px;" onclick="showHardwareInfo('motor')">M
+                                <span class="hotspot-tooltip">Motor Controller</span>
+                            </div>
+                             <div class="hotspot" style="bottom: 10px; right: 10px;" onclick="showHardwareInfo('imu')">I
+                                <span class="hotspot-tooltip">IMU Sensor</span>
+                            </div>
+                            <div class="hotspot" style="bottom: -20px; left: 45%;" onclick="showHardwareInfo('power')">P
+                                <span class="hotspot-tooltip">Power System</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="hardware-info-display" class="lg:col-span-3 content-card p-6">
+                        <h4 class="text-lg font-semibold text-slate-800">Component Details</h4>
+                        <p class="text-slate-600">Select a component on the diagram to see its description, popular options, and design considerations.</p>
+                    </div>
+                </div>
+                <div class="mt-8 content-card p-6">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-4">Hardware Comparison</h3>
+                    <p class="text-sm text-slate-500 mb-4">A detailed comparison of hardware options. The choice of platform and sensors fundamentally shapes the project's budget, timeline, and capabilities.</p>
+                    <div class="overflow-x-auto">
+                        <table id="hardware-table" class="w-full text-sm text-left text-slate-500">
+                            <thead class="text-xs text-slate-700 uppercase bg-slate-100">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3">Component</th>
+                                    <th scope="col" class="px-6 py-3">Option 1 (Cost-Effective)</th>
+                                    <th scope="col" class="px-6 py-3">Option 2 (High-Performance)</th>
+                                    <th scope="col" class="px-6 py-3">Key Consideration</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="Software" class="tab-content hidden">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">AI Model Performance</h3>
+                        <p class="text-sm text-slate-500 mb-4">A comparison of object detection models. The choice is a trade-off between speed (for real-time control) and accuracy (for reliable detection). For advanced manipulation, segmentation models are required.</p>
+                        <div class="chart-container">
+                            <canvas id="aiModelChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-4">SLAM Process Visualization</h3>
+                        <p class="text-sm text-slate-500 mb-4">SLAM builds an occupancy grid map. This animation shows the robot moving, its laser scan (red line) detecting walls, and the map being updated from unknown (gray) to free (white) or occupied (dark).</p>
+                        <div class="w-full h-64 bg-gray-400 rounded-lg p-2">
+                             <canvas id="slamCanvas" class="w-full h-full"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="Mechanism" class="tab-content hidden">
+                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="content-card p-6">
+                        <h3 class="font-semibold text-lg mb-2">Simple Scoop/Plow</h3>
+                        <p class="text-sm text-slate-600">Drives into debris to collect it. Ideal for uniform items on flat surfaces. Low cost and few failure points.</p>
+                        <p class="text-xs mt-2 font-semibold text-blue-600">Perception Need: 2D Bounding Box</p>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="font-semibold text-lg mb-2">Articulated Robotic Arm</h3>
+                        <p class="text-sm text-slate-600">Offers high dexterity for picking specific items. Requires complex control software (inverse kinematics).</p>
+                        <p class="text-xs mt-2 font-semibold text-blue-600">Perception Need: 3D Pose (x,y,z)</p>
+                    </div>
+                     <div class="content-card p-6">
+                        <h3 class="font-semibold text-lg mb-2">Vacuum Gripper</h3>
+                        <p class="text-sm text-slate-600">Excellent for lifting items with flat surfaces like cardboard. Modern electric versions are self-contained and quiet.</p>
+                        <p class="text-xs mt-2 font-semibold text-blue-600">Perception Need: 3D Pose (x,y,z)</p>
+                    </div>
+                     <div class="content-card p-6">
+                        <h3 class="font-semibold text-lg mb-2">Soft Gripper</h3>
+                        <p class="text-sm text-slate-600">Uses flexible fingers to conform to irregular shapes like crushed cans without damaging them. Highly versatile.</p>
+                        <p class="text-xs mt-2 font-semibold text-blue-600">Perception Need: 3D Pose + Segmentation Mask</p>
+                    </div>
+                    <div class="content-card p-6">
+                        <h3 class="font-semibold text-lg mb-2">Revolving Brushes</h3>
+                        <p class="text-sm text-slate-600">Uses counter-rotating brushes to sweep items into a bin. Effective for containing rolling objects like cans.</p>
+                        <p class="text-xs mt-2 font-semibold text-blue-600">Perception Need: 2D Bounding Box</p>
+                    </div>
+                     <div class="content-card p-6">
+                        <h3 class="font-semibold text-lg mb-2">Self-Weighted Forceps</h3>
+                        <p class="text-sm text-slate-600">Novel design where the object's own weight creates the gripping force, saving battery power.</p>
+                        <p class="text-xs mt-2 font-semibold text-blue-600">Perception Need: 3D Pose (x,y,z)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Development Process Section -->
+        <section id="process" class="mb-16 scroll-mt-16">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">The Development Process</h2>
+            <p class="text-lg text-slate-600 mb-8 max-w-3xl">
+                Bringing a rover to life follows a structured path from virtual testing to real-world deployment. Simulation is a critical, cost-saving step that allows for extensive debugging of navigation and perception algorithms before ever running them on physical hardware.
+            </p>
+            <div class="relative border-l-2 border-blue-500 ml-4">
+                <div class="mb-8 ml-8">
+                    <span class="absolute -left-[11px] flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full text-white font-bold">1</span>
+                    <h3 class="text-lg font-semibold text-slate-800">Simulation (Gazebo & RViz)</h3>
+                    <p class="text-slate-600">Create a virtual twin of the robot using a URDF file and test the entire software stack. Use RViz to visualize the robot's "thoughts," debugging sensor data (LiDAR scans, camera images) and decision-making (costmaps, planned paths).</p>
+                </div>
+                <div class="mb-8 ml-8">
+                    <span class="absolute -left-[11px] flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full text-white font-bold">2</span>
+                    <h3 class="text-lg font-semibold text-slate-800">Calibration</h3>
+                    <p class="text-slate-600">Precisely measure the positions and orientations of all sensors relative to the robot's center (`base_link`). This information populates the robot's TF (Transform) tree, which is essential for fusing data from different sensors. Inaccurate calibration is a common source of poor navigation performance.</p>
+                </div>
+                <div class="ml-8">
+                    <span class="absolute -left-[11px] flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full text-white font-bold">3</span>
+                    <h3 class="text-lg font-semibold text-slate-800">Deployment & Tuning</h3>
+                    <p class="text-slate-600">Deploy the rover in the real world. Empirically tune Nav2 parameters in the YAML configuration files (e.g., costmap inflation radius, planner tolerances, motor acceleration limits) to achieve smooth, reliable, and safe motion on real surfaces.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Advanced Features Section -->
+        <section id="advanced" class="scroll-mt-16">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">Advanced Capabilities & Future Enhancements</h2>
+            <p class="text-lg text-slate-600 mb-8 max-w-3xl">
+                A basic collection rover is just the beginning. The true value of autonomy is realized by adding layers of intelligence, efficiency, and persistence. These enhancements transform a simple prototype into a truly useful system capable of long-term, complex tasks.
+            </p>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="content-card p-6">
+                    <h3 class="font-semibold text-lg mb-2">Coverage Path Planning</h3>
+                    <p class="text-sm text-slate-600 mb-2">Implement algorithms like the "lawnmower" pattern to ensure the rover systematically covers every part of a designated area.</p>
+                    <p class="text-xs font-medium text-slate-500"><span class="font-bold">Implementation Note:</span> Use a ROS package like `full_coverage_path_planner` as a global planner plugin within the Nav2 stack.</p>
+                </div>
+                <div class="content-card p-6">
+                    <h3 class="font-semibold text-lg mb-2">Automated Docking & Charging</h3>
+                    <p class="text-sm text-slate-600 mb-2">When the battery is low, the rover autonomously navigates to a charging station for unattended operation.</p>
+                    <p class="text-xs font-medium text-slate-500"><span class="font-bold">Implementation Note:</span> Use a fiducial marker (e.g., AprilTag) on the dock for precise visual servoing, managed by the Nav2 Docking Server.</p>
+                </div>
+                <div class="content-card p-6">
+                    <h3 class="font-semibold text-lg mb-2">Intelligent On-Board Sorting</h3>
+                    <p class="text-sm text-slate-600 mb-2">Add multiple bins and train the AI to classify waste by material (plastic, metal, paper) for streamlined recycling.</p>
+                     <p class="text-xs font-medium text-slate-500"><span class="font-bold">Implementation Note:</span> Train a multi-class detection model using a dataset like TrashNet and add logic to the state machine to sort based on the class label.</p>
+                </div>
+                <div class="content-card p-6">
+                    <h3 class="font-semibold text-lg mb-2">Multi-Robot Coordination (Swarms)</h3>
+                    <p class="text-sm text-slate-600 mb-2">Deploy a team of rovers that can divide a large area and coordinate tasks for maximum efficiency.</p>
+                    <p class="text-xs font-medium text-slate-500"><span class="font-bold">Implementation Note:</span> Use ROS2's native multi-robot features and a centralized server for task allocation (e.g., static map partitioning).</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-slate-800 text-white mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-sm">
+            <p>Interactive Rover Design Guide | Adapted from Expert Report</p>
+        </div>
+    </footer>
+
+<script>
+    // Tab functionality
+    function openTab(evt, tabName) {
+        let i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tab-button");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+
+    // Hardware Info Display
+    const hardwareData = {
+        cpu: {
+            title: 'Compute Unit (CPU/GPU)',
+            description: 'The rover\'s brain, responsible for running the ROS stack, navigation, and AI models. The choice dictates the robot\'s computational power.',
+            options: [
+                '<strong>Raspberry Pi 4/5:</strong> Low-cost, power-efficient, and capable of running the full ROS stack. Best for moderate AI demands.',
+                '<strong>NVIDIA Jetson Nano/Xavier:</strong> Features a powerful onboard GPU for accelerating deep learning models like YOLOv5 in real-time. The clear choice for high-performance AI.'
+            ]
+        },
+        lidar: {
+            title: 'LiDAR Sensor',
+            description: 'The primary sensor for 2D/3D mapping and navigation. It provides precise, 360-degree distance measurements used to build the map and detect obstacles for SLAM.',
+            options: [
+                '<strong>RPLidar A2:</strong> A popular and affordable option for hobbyists and researchers, offering good performance for its price.',
+                '<strong>Hokuyo LiDAR:</strong> A higher-end, industry-standard sensor known for its accuracy and reliability.'
+            ]
+        },
+        camera: {
+            title: 'Vision System (Camera)',
+            description: 'The rover\'s "eyes," essential for the garbage detection task. The type of camera determines the richness of the visual data.',
+            options: [
+                '<strong>RGB Camera (Webcam/Pi Cam):</strong> Captures the color video stream fed into the object detection model.',
+                '<strong>RGB-D (Depth) Camera:</strong> A significant upgrade (e.g., Intel RealSense) that provides a per-pixel depth map. This is crucial for 3D perception and robotic arm manipulation.'
+            ]
+        },
+        power: {
+            title: 'Power System',
+            description: 'A reliable power system is critical for operation and safety. It includes batteries, voltage regulation, and safety cutoffs.',
+            options: [
+                '<strong>Batteries:</strong> Li-Po batteries for smaller robots, or sealed lead-acid batteries for larger, power-hungry platforms.',
+                '<strong>Voltage Regulation:</strong> A DC-DC buck converter is essential to step down the main battery voltage (e.g., 12V) to a stable 5V for electronics like the CPU and sensors.'
+            ]
+        },
+        motor: {
+            title: 'Motor Controller',
+            description: 'The bridge between the low-power logic of the CPU and the high-current demands of the motors. Often offloads PID control.',
+            options: [
+                '<strong>RoboClaw:</strong> A popular and powerful controller known for its rich feature set and reliability in hobbyist and research projects.',
+                '<strong>Sabertooth:</strong> A robust option for larger robots with powerful motors, capable of delivering high continuous currents.'
+            ]
+        },
+        imu: {
+            title: 'IMU Sensor',
+            description: 'Provides critical data about the robot\'s orientation (roll, pitch, yaw). This data is fused with wheel encoder data by an Extended Kalman Filter (EKF) to produce accurate odometry.',
+            options: [
+                '<strong>MPU-6050:</strong> A very common and low-cost IMU for basic projects.',
+                '<strong>BNO055 / BNO085:</strong> More advanced sensors that perform internal sensor fusion, providing a clean, stable orientation output.'
+            ]
+        }
+    };
+
+    function showHardwareInfo(component) {
+        const data = hardwareData[component];
+        const display = document.getElementById('hardware-info-display');
+        let optionsHtml = data.options.map(opt => `<li class="text-slate-600 text-sm">${opt}</li>`).join('');
+        display.innerHTML = `
+            <h4 class="text-lg font-semibold text-slate-800 mb-2">${data.title}</h4>
+            <p class="text-slate-600 mb-4 text-sm">${data.description}</p>
+            <ul class="list-disc list-inside space-y-2">${optionsHtml}</ul>
+        `;
+    }
+
+    // Hardware Table Data
+    const hardwareTableData = [
+        { component: 'Compute Unit', opt1: 'Raspberry Pi 4/5', opt2: 'NVIDIA Jetson Nano', consideration: 'AI performance vs. cost/power.' },
+        { component: 'Chassis Type', opt1: 'DIY / RC Car Base', opt2: 'Rocker-Bogie', consideration: 'Terrain capability vs. mechanical complexity.' },
+        { component: 'LiDAR Sensor', opt1: 'Slamtec RPLIDAR A2', opt2: 'Hokuyo URG-04LX', consideration: 'Range/accuracy vs. budget.' },
+        { component: 'Camera Type', opt1: 'RGB Webcam', opt2: 'Intel RealSense D435i', consideration: '2D detection vs. 3D manipulation needs.' },
+        { component: 'Motor Controller', opt1: 'RoboClaw', opt2: 'Sabertooth 2x32', consideration: 'Current requirements of chosen motors.' },
+    ];
+
+    function populateHardwareTable() {
+        const tableBody = document.querySelector('#hardware-table tbody');
+        let tableHtml = '';
+        hardwareTableData.forEach(item => {
+            tableHtml += `
+                <tr class="bg-white border-b">
+                    <th scope="row" class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">${item.component}</th>
+                    <td class="px-6 py-4">${item.opt1}</td>
+                    <td class="px-6 py-4">${item.opt2}</td>
+                    <td class="px-6 py-4">${item.consideration}</td>
+                </tr>
+            `;
+        });
+        tableBody.innerHTML = tableHtml;
+    }
+
+
+    // AI Model Chart
+    function renderAIChart() {
+        const ctx = document.getElementById('aiModelChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['YOLOv5', 'SSD MobileNet v2', 'Mask-RCNN'],
+                datasets: [{
+                    label: 'Relative Performance (Higher is Better)',
+                    data: [85, 70, 50],
+                    backgroundColor: ['rgba(59, 130, 246, 0.7)', 'rgba(16, 185, 129, 0.7)', 'rgba(239, 68, 68, 0.7)'],
+                    borderColor: ['rgb(59, 130, 246)', 'rgb(16, 185, 129)', 'rgb(239, 68, 68)'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Accuracy vs. Speed Score' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    if(context.label === 'YOLOv5') label = 'Best balance of speed and accuracy.';
+                                    if(context.label === 'SSD MobileNet v2') label = 'Highly efficient, good for low power.';
+                                    if(context.label === 'Mask-RCNN') label = 'Slower, but provides detailed object masks for advanced grasping.';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // SLAM Canvas Animation
+    function runSlamAnimation() {
+        const canvas = document.getElementById('slamCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const parent = canvas.parentElement;
+        
+        let width, height;
+        let robot = { x: 30, y: 30, angle: 0, speed: 0.8, radius: 8 };
+        let map = [];
+        const mapSize = 30;
+        const path = [ {x: 250, y: 30}, {x: 250, y: 250}, {x: 30, y: 250}, {x: 30, y: 30} ];
+        let pathIndex = 0;
+        const obstacles = [ {x:15, y:10, w:2, h:10}, {x:8, y:22, w:10, h:2} ];
+
+        function resizeCanvas() {
+            width = parent.clientWidth;
+            height = parent.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+            for(let i=0; i<mapSize; i++) {
+                map[i] = [];
+                for(let j=0; j<mapSize; j++) {
+                     if(i === 0 || i === mapSize-1 || j === 0 || j === mapSize-1) {
+                        map[i][j] = 2; // Wall
+                     } else {
+                        map[i][j] = 0; // 0=unknown, 1=free, 2=obstacle
+                     }
+                }
+            }
+            obstacles.forEach(o => {
+                for(let i=o.x; i<o.x+o.w; i++) {
+                    for(let j=o.y; j<o.y+o.h; j++) map[i][j] = 2;
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+            const cellWidth = width / mapSize;
+            const cellHeight = height / mapSize;
+
+            // Draw map
+            for(let i=0; i<mapSize; i++) {
+                for(let j=0; j<mapSize; j++) {
+                    if(map[i][j] === 1) ctx.fillStyle = 'white';
+                    else if (map[i][j] === 2) ctx.fillStyle = '#475569'; // slate-600
+                    else ctx.fillStyle = '#94a3b8'; // slate-400 (unknown)
+                    
+                    ctx.fillRect(i * cellWidth, j * cellHeight, cellWidth, cellHeight);
+                }
+            }
+            
+            // Draw Laser Scan
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+            ctx.lineWidth = 1;
+            for(let a = 0; a < Math.PI * 2; a += Math.PI / 18) {
+                ctx.beginPath();
+                ctx.moveTo(robot.x, robot.y);
+                let scanX = robot.x + Math.cos(robot.angle + a) * 80;
+                let scanY = robot.y + Math.sin(robot.angle + a) * 80;
+                ctx.lineTo(scanX, scanY);
+                ctx.stroke();
+            }
+
+            // Draw robot
+            ctx.beginPath();
+            ctx.arc(robot.x, robot.y, robot.radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#2563eb'; // blue-600
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function update() {
+            let target = path[pathIndex];
+            let dx = target.x - robot.x;
+            let dy = target.y - robot.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+
+            if(dist < robot.speed * 2) {
+                pathIndex = (pathIndex + 1) % path.length;
+            }
+
+            robot.angle = Math.atan2(dy, dx);
+            robot.x += Math.cos(robot.angle) * robot.speed;
+            robot.y += Math.sin(robot.angle) * robot.speed;
+
+            // Update map based on what robot sees
+            const cellWidth = width / mapSize;
+            const cellHeight = height / mapSize;
+            const visionRadius = 5;
+            let robotCellX = Math.floor(robot.x / cellWidth);
+            let robotCellY = Math.floor(robot.y / cellHeight);
+
+            for(let i = -visionRadius; i <= visionRadius; i++) {
+                for(let j = -visionRadius; j <= visionRadius; j++) {
+                    let checkX = robotCellX + i;
+                    let checkY = robotCellY + j;
+                    if(checkX >= 0 && checkX < mapSize && checkY >= 0 && checkY < mapSize) {
+                        if (map[checkX][checkY] !== 2) { // Don't overwrite known obstacles
+                           map[checkX][checkY] = 1; // Mark as free
+                        }
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            update();
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        animate();
+    }
+    
+    // Navigation scrollspy
+    function setupScrollspy() {
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.onscroll = () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 80) { // 80px offset for sticky nav
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        };
+    }
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('.tab-button').click();
+        populateHardwareTable();
+        renderAIChart();
+        runSlamAnimation();
+        setupScrollspy();
+        showHardwareInfo('cpu'); // Show default hardware info
+    });
+
+</script>
+</body>
+</html>
